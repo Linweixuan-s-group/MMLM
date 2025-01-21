@@ -369,15 +369,25 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
 # Split the dataset using train_test_split for stratified sampling
 labels = [item[-1] for item in dataset]
+
+train_val_indices, test_indices = train_test_split(
+    range(len(labels)), test_size=0.2, stratify=labels, random_state=42
+)
 train_indices, val_indices = train_test_split(
-    range(len(labels)), test_size=0.5, stratify=labels, random_state=42
+    train_val_indices, test_size=0.2, stratify=[labels[i] for i in train_val_indices], random_state=42
 )
 
-# Create training and validation datasets and loaders
+
+# Create training, validation and test datasets and loaders
 train_dataset = torch.utils.data.Subset(dataset, train_indices)
 val_dataset = torch.utils.data.Subset(dataset, val_indices)
+test_dataset = torch.utils.data.Subset(dataset, test_indices)
+
 train_loader = DataLoader(train_dataset, batch_size=14, shuffle=True, collate_fn=custom_collate)
 val_loader = DataLoader(val_dataset, batch_size=14, shuffle=False, collate_fn=custom_collate)
+test_loader = DataLoader(test_dataset, batch_size=14, shuffle=False, collate_fn=custom_collate)
+
+
 
 # Train the model
 train_and_evaluate(model, train_loader, val_loader, criterion, optimizer, num_epochs=25, patience=5)
@@ -390,7 +400,7 @@ y_pred = []
 predicted_probs = []
 
 with torch.no_grad():
-    for (images, transcript_data, methy_data, numeric_data, category_data), labels in val_loader:
+    for (images, transcript_data, methy_data, numeric_data, category_data), labels in test_loader:
         # Ensure all data is moved to the same device
         images = images.to(device)
         transcript_data = transcript_data.to(device)
